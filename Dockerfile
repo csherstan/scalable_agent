@@ -75,7 +75,7 @@ RUN python dynamic_batching_test.py
 RUN python vtrace_test.py
 
 # Run.
-CMD ["sh", "-c", "python experiment.py --total_environment_frames=10000 --dataset_path=../dataset && python experiment.py --mode=test --test_num_episodes=5"]
+# CMD ["sh", "-c", "python experiment.py --total_environment_frames=10000 --dataset_path=../dataset && python experiment.py --mode=test --test_num_episodes=5"]
 
 # Docker commands:
 #   docker rm scalable_agent -v
