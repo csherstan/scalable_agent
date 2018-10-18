@@ -23,9 +23,11 @@ RUN apt-get update && apt-get install -y \
     python-dev \
     build-essential \
     git \
-    python-setuptools \
+    python3-pip \
     python-pip \
     libjpeg-dev
+
+
 
 # Install bazel
 RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8" | \
@@ -34,25 +36,48 @@ RUN echo "deb [arch=amd64] http://storage.googleapis.com/bazel-apt stable jdk1.8
     apt-key add - && \
     apt-get update && apt-get install -y bazel
 
+#RUN pip3 install pipenv
+
 # Install TensorFlow and other dependencies
-RUN pip install tensorflow==1.9.0 dm-sonnet
+RUN pip3 install tensorflow==1.9.0 dm-sonnet
 
 # Build and install DeepMind Lab pip package.
 # We explicitly set the Numpy path as shown here:
 # https://github.com/deepmind/lab/blob/master/docs/users/build.md
-RUN NP_INC="$(python -c 'import numpy as np; print(np.get_include())[5:]')" && \
-    git clone https://github.com/deepmind/lab.git && \
-    cd lab && \
+#RUN cd lab && \
+#    sed -i 's@hdrs = glob(\[@hdrs = glob(["'"$NP_INC"'/\*\*/*.h", @g' python.BUILD && \
+#    sed -i 's@includes = \[@includes = ["'"$NP_INC"'", @g' python.BUILD && \
+
+RUN git clone https://github.com/deepmind/lab.git
+
+RUN cd lab && \
+    NP_INC="$(python3 -c 'import numpy as np; print(np.get_include()[5:])')" && \
     sed -i 's@hdrs = glob(\[@hdrs = glob(["'"$NP_INC"'/\*\*/*.h", @g' python.BUILD && \
     sed -i 's@includes = \[@includes = ["'"$NP_INC"'", @g' python.BUILD && \
-    bazel build -c opt python/pip_package:build_pip_package && \
-    pip install wheel && \
+    more python.BUILD
+
+ADD python.BUILD /lab/python.BUILD
+
+RUN cd lab && \
+    pwd && ls -la && \
+    more python.BUILD && \
+    bazel build -c opt python/pip_package:build_pip_package --python_path=/usr/bin/python3
+
+ENV PYTHON_BIN_PATH /usr/bin/python3
+
+RUN cd lab && \
     ./bazel-bin/python/pip_package/build_pip_package /tmp/dmlab_pkg && \
-    pip install /tmp/dmlab_pkg/DeepMind_Lab-1.0-py2-none-any.whl --force-reinstall
+    echo "output dir:" && \
+    ls -la /tmp/dmlab_pkg && \
+    echo "done" && \
+    pip3 install /tmp/dmlab_pkg/DeepMind_Lab-1.0-py3-none-any.whl --force-reinstall
 
 # Install dataset (from https://github.com/deepmind/lab/tree/master/data/brady_konkle_oliva2008)
-RUN mkdir dataset && \
-    cd dataset && \
+RUN apt-get install -y python3-pil
+
+# the Pillow install needs to be pip, not pip3.
+RUN mkdir -p /opt/lab/dataset && \
+    cd /opt/lab/dataset && \
     pip install Pillow && \
     curl -sS https://raw.githubusercontent.com/deepmind/lab/master/data/brady_konkle_oliva2008/README.md | \
     tr '\n' '\r' | \
@@ -65,17 +90,20 @@ RUN git clone https://github.com/deepmind/scalable_agent.git
 WORKDIR scalable_agent
 
 # Build dynamic batching module.
-RUN TF_INC="$(python -c 'import tensorflow as tf; print(tf.sysconfig.get_include())')" && \
-    TF_LIB="$(python -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')" && \
+RUN TF_INC="$(python3 -c 'import tensorflow as tf; print(tf.sysconfig.get_include())')" && \
+    TF_LIB="$(python3 -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')" && \
     g++-4.8 -std=c++11 -shared batcher.cc -o batcher.so -fPIC -I $TF_INC -O2 -D_GLIBCXX_USE_CXX11_ABI=0 -L$TF_LIB -ltensorflow_framework
 
 # Run tests.
-RUN python py_process_test.py
-RUN python dynamic_batching_test.py
-RUN python vtrace_test.py
+ADD test.py test.py
+ADD py_process_test.py py_process_test.py
+RUN python3 test.py
+RUN python3 py_process_test.py
+RUN python3 dynamic_batching_test.py
+RUN python3 vtrace_test.py
 
 # Run.
-# CMD ["sh", "-c", "python experiment.py --total_environment_frames=10000 --dataset_path=../dataset && python experiment.py --mode=test --test_num_episodes=5"]
+# CMD ["sh", "-c", "python3 experiment.py --total_environment_frames=10000 --dataset_path=../dataset && python experiment.py --mode=test --test_num_episodes=5"]
 
 # Docker commands:
 #   docker rm scalable_agent -v

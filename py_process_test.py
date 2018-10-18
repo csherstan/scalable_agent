@@ -13,10 +13,10 @@
 # limitations under the License.
 
 """Tests py_process.py."""
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+print("py_process_test.py")
 
 import tempfile
 import time
@@ -31,6 +31,7 @@ from six.moves import range
 class PyProcessTest(tf.test.TestCase):
 
   def test_small(self):
+    print("test_small")
 
     class Example(object):
 
@@ -64,7 +65,7 @@ class PyProcessTest(tf.test.TestCase):
         self.assertEqual(4, session.run(compute))
 
   def test_threading(self):
-
+    print("test_threading")
     class Example(object):
 
       def __init__(self):
@@ -96,7 +97,7 @@ class PyProcessTest(tf.test.TestCase):
       t.join()
 
   def test_args(self):
-
+    print("test_args")
     class Example(object):
 
       def __init__(self, dim0):
@@ -113,16 +114,20 @@ class PyProcessTest(tf.test.TestCase):
           return tf.contrib.framework.TensorSpec([dim0, dim1], tf.int32)
 
     with tf.Graph().as_default():
+      print("1")
       p = py_process.PyProcess(Example, 1)
+      print("2")
       result = p.proxy.compute(2)
+      print("3")
 
       with tf.train.SingularMonitoredSession(
           hooks=[py_process.PyProcessHook()]) as session:
+        print("4")
         self.assertEqual([1, 2], result.shape)
         self.assertAllEqual([[0, 0]], session.run(result))
 
   def test_error_handling_constructor(self):
-
+    print("test_error_handling_constructor")
     class Example(object):
 
       def __init__(self):
@@ -145,7 +150,7 @@ class PyProcessTest(tf.test.TestCase):
           pass
 
   def test_error_handling_method(self):
-
+    print("test_error_handling_method")
     class Example(object):
 
       def __init__(self):
@@ -169,6 +174,7 @@ class PyProcessTest(tf.test.TestCase):
           session.run(result)
 
   def test_close(self):
+    print("test_close")
     with tempfile.NamedTemporaryFile() as tmp:
       class Example(object):
 
@@ -189,6 +195,7 @@ class PyProcessTest(tf.test.TestCase):
       self.assertEqual('was_closed', tmp.read())
 
   def test_close_on_error(self):
+    print("test_close_on_error")
     with tempfile.NamedTemporaryFile() as tmp:
 
       class Example(object):
@@ -237,6 +244,7 @@ class PyProcessBenchmarks(tf.test.Benchmark):
         return tf.contrib.framework.TensorSpec([72, 96, 3], tf.uint8)
 
   def benchmark_one(self):
+    print("benchmark_one")
     with tf.Graph().as_default():
       p = py_process.PyProcess(PyProcessBenchmarks.Example)
       compute = p.proxy.compute(2)
@@ -252,6 +260,7 @@ class PyProcessBenchmarks(tf.test.Benchmark):
             min_iters=5000)
 
   def benchmark_many(self):
+    print("benchmark_many")
     with tf.Graph().as_default():
       ps = [
           py_process.PyProcess(PyProcessBenchmarks.Example) for _ in range(200)
@@ -271,4 +280,5 @@ class PyProcessBenchmarks(tf.test.Benchmark):
 
 
 if __name__ == '__main__':
+  print("main")
   tf.test.main()
