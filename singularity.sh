@@ -13,7 +13,8 @@ else
 
     if [[ $count -eq 0 ]]; then
         echo 'No instance running, starting new one.'
-        singularity instance.start -B /mnt/ffa91d66-e903-493b-8865-4106decd164c $CONTAINER_NAME.simg $CONTAINER_NAME
+        # at present set SINGULARITY_BINDPATH to specify mount points
+        singularity instance.start $CONTAINER_NAME.simg $CONTAINER_NAME
     else
         echo 'Already running.'
     fi
